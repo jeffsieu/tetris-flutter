@@ -1,10 +1,11 @@
+import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
 import 'package:tetris_flutter/input/input.dart';
 import 'package:tetris_flutter/models/models.dart';
 import 'package:tetris_flutter/tetris/tetris.dart';
-import 'package:tetris_flutter/widgets/board.dart';
 
 void main() {
   runApp(const TetrisApp());
@@ -17,9 +18,7 @@ class TetrisApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Tetris',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: FlexThemeData.dark(),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
@@ -46,6 +45,8 @@ final nonRepeatableKeyBindings = {
   PhysicalKeyboardKey.keyZ: const PieceRotated(Rotation.counterClockwise),
   PhysicalKeyboardKey.keyX: const PieceRotated(Rotation.clockwise),
   PhysicalKeyboardKey.keyA: const PieceRotated(Rotation.half),
+  PhysicalKeyboardKey.arrowUp: const PieceRotated(Rotation.clockwise),
+  PhysicalKeyboardKey.keyR: const GameReset(),
 };
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -65,92 +66,139 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
     focusNode.requestFocus();
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: MultiBlocProvider(
-        providers: [
-          BlocProvider(
-            create: (context) =>
-                TetrisBloc(TetrisState.initial(GameSystemSpecs.standard())),
-          ),
-          BlocProvider(
-            create: (context) => InputBloc(
-              keyBindings: {
-                ...repeatableKeyBindings.map(
-                  (key, value) => MapEntry(
-                    key,
-                    InputAction(
-                        callback: () {
-                          context.read<TetrisBloc>().add(value);
-                        },
-                        isRepeatable: true),
+      body: Provider<MinoColorScheme>(
+        create: (context) => StandardMinoColorScheme(brightness),
+        child: MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (context) =>
+                  TetrisBloc(TetrisState.initial(GameSystemSpecs.standard())),
+            ),
+            BlocProvider(
+              create: (context) => InputBloc(
+                keyBindings: {
+                  ...repeatableKeyBindings.map(
+                    (key, value) => MapEntry(
+                      key,
+                      InputAction(
+                          callback: () {
+                            context.read<TetrisBloc>().add(value);
+                          },
+                          isRepeatable: true),
+                    ),
                   ),
-                ),
-                ...nonRepeatableKeyBindings.map(
-                  (key, value) => MapEntry(
-                    key,
-                    InputAction(
-                        callback: () {
-                          context.read<TetrisBloc>().add(value);
-                        },
-                        isRepeatable: false),
+                  ...nonRepeatableKeyBindings.map(
+                    (key, value) => MapEntry(
+                      key,
+                      InputAction(
+                          callback: () {
+                            context.read<TetrisBloc>().add(value);
+                          },
+                          isRepeatable: false),
+                    ),
                   ),
-                ),
+                },
+              ),
+            ),
+          ],
+          child: Builder(builder: (context) {
+            final heldMino =
+                context.select((TetrisBloc bloc) => bloc.state.heldMino);
+            final nextMinoType =
+                context.select((TetrisBloc bloc) => bloc.state.nextMinoType);
+            return RawKeyboardListener(
+              focusNode: focusNode,
+              onKey: (event) {
+                if (event is RawKeyDownEvent) {
+                  context
+                      .read<InputBloc>()
+                      .add(InputKeyDownEvent(event.physicalKey));
+                } else if (event is RawKeyUpEvent) {
+                  context
+                      .read<InputBloc>()
+                      .add(InputKeyUpEvent(event.physicalKey));
+                }
               },
-            ),
-          ),
-        ],
-        child: Builder(builder: (context) {
-          return RawKeyboardListener(
-            focusNode: focusNode,
-            onKey: (event) {
-              if (event is RawKeyDownEvent) {
-                context
-                    .read<InputBloc>()
-                    .add(InputKeyDownEvent(event.physicalKey));
-              } else if (event is RawKeyUpEvent) {
-                context
-                    .read<InputBloc>()
-                    .add(InputKeyUpEvent(event.physicalKey));
-              }
-            },
-            child: Stack(
-              children: [
-                const SizedBox(width: 200, child: Board()),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    ElevatedButton(
-                      child: const Text('Fall piece'),
-                      onPressed: () {
-                        context.read<TetrisBloc>().add(const PieceFell());
-                      },
-                    ),
-                    ElevatedButton(
-                      child: const Text('Left'),
-                      onPressed: () {
-                        context
-                            .read<TetrisBloc>()
-                            .add(PieceShifted(Direction.left));
-                      },
-                    ),
-                    ElevatedButton(
-                      child: const Text('Right'),
-                      onPressed: () {
-                        context
-                            .read<TetrisBloc>()
-                            .add(PieceShifted(Direction.right));
-                      },
-                    ),
-                  ],
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: FittedBox(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Column(
+                                children: [
+                                  const Text('Hold'),
+                                  SizedBox(
+                                    width: kTileSize * 4,
+                                    height: kTileSize * 4,
+                                    child: Center(
+                                      child: heldMino != null
+                                          ? MinoPiece(
+                                              Mino(
+                                                position: const Position(0, 0),
+                                                baseBoundingBox: context
+                                                    .read<TetrisBloc>()
+                                                    .state
+                                                    .gameSystemSpecs
+                                                    .boundingBoxProvider
+                                                    .getBoundingBox(heldMino),
+                                                rotation: Rotation.none,
+                                                type: heldMino,
+                                              ),
+                                              key: ValueKey(heldMino),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const MinoBoard(),
+                              Column(
+                                children: [
+                                  const Text('Next'),
+                                  SizedBox(
+                                    width: kTileSize * 4,
+                                    height: kTileSize * 4,
+                                    child: Center(
+                                      child: MinoPiece(
+                                        Mino(
+                                          position: const Position(0, 0),
+                                          baseBoundingBox: context
+                                              .read<TetrisBloc>()
+                                              .state
+                                              .gameSystemSpecs
+                                              .boundingBoxProvider
+                                              .getBoundingBox(nextMinoType),
+                                          rotation: Rotation.none,
+                                          type: nextMinoType,
+                                        ),
+                                        key: ValueKey(nextMinoType),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          );
-        }),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }

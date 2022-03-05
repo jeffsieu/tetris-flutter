@@ -6,6 +6,7 @@ abstract class MinoBag {
   const MinoBag();
 
   MinoType draw();
+  MinoType peek();
 }
 
 class RandomGeneratorBag extends MinoBag {
@@ -19,5 +20,13 @@ class RandomGeneratorBag extends MinoBag {
       remaining.addAll([...MinoType.values]..shuffle(_random));
     }
     return remaining.removeLast();
+  }
+
+  @override
+  MinoType peek() {
+    if (remaining.isEmpty) {
+      remaining.addAll([...MinoType.values]..shuffle(_random));
+    }
+    return remaining.last;
   }
 }

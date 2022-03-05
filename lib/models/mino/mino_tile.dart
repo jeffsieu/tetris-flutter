@@ -1,11 +1,15 @@
-import 'package:flutter/material.dart';
+import 'package:tetris_flutter/models/models.dart';
 
 class MinoTile {
-  MinoTile.empty()
-      : color = Colors.transparent,
-        isEmpty = true;
-  const MinoTile(this.color) : isEmpty = false;
+  const MinoTile.empty()
+      : type = null,
+        isHint = false;
+  const MinoTile.hint()
+      : type = null,
+        isHint = true;
+  const MinoTile(this.type) : isHint = false;
 
-  final Color color;
-  final bool isEmpty;
+  final MinoType? type;
+  final bool isHint;
+  bool get isEmpty => type == null;
 }

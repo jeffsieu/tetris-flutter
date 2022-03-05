@@ -1,5 +1,5 @@
 name: tetris_flutter
-description: A new Flutter project.
+description: Tetris implemented in Flutter.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.2
   flutter_bloc: ^8.0.1
   equatable: ^2.0.3
+  flex_color_scheme: ^4.2.0
 
 dev_dependencies:
   flutter_test:

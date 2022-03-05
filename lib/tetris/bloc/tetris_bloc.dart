@@ -4,9 +4,11 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tetris_flutter/models/models.dart';
 
+part 'tetris_event.dart';
 part 'tetris_state.dart';
 
 const Duration kMinoRestingDuration = Duration(milliseconds: 500);
+const Duration kMinoFallingDelay = Duration(milliseconds: 500);
 
 class TetrisBloc extends Bloc<TetrisEvent, TetrisState> {
   TetrisBloc(TetrisState initialState) : super(initialState) {
@@ -15,8 +17,9 @@ class TetrisBloc extends Bloc<TetrisEvent, TetrisState> {
     on<PieceRotated>(_onPieceRotated);
     on<PieceDropped>(_onPieceDropped);
     on<PieceSwapped>(_onPieceSwapped);
+    on<GameReset>(_onGameReset);
 
-    fallTimer = Timer.periodic(const Duration(milliseconds: 300), _onTimerTick);
+    fallTimer = Timer.periodic(kMinoFallingDelay, _onTimerTick);
   }
 
   late Timer fallTimer;
@@ -79,35 +82,8 @@ class TetrisBloc extends Bloc<TetrisEvent, TetrisState> {
     settleTimer = null;
     emit(state.withMinoSwapped());
   }
-}
 
-abstract class TetrisEvent {
-  const TetrisEvent();
-}
-
-class PieceFell extends TetrisEvent {
-  const PieceFell();
-}
-
-class PieceShifted extends TetrisEvent {
-  PieceShifted(Direction direction)
-      : x = direction.x,
-        y = direction.y;
-
-  final int x;
-  final int y;
-}
-
-class PieceRotated extends TetrisEvent {
-  const PieceRotated(this.rotation);
-
-  final Rotation rotation;
-}
-
-class PieceDropped extends TetrisEvent {
-  const PieceDropped();
-}
-
-class PieceSwapped extends TetrisEvent {
-  const PieceSwapped();
+  void _onGameReset(GameReset event, Emitter<TetrisState> emit) {
+    emit(TetrisState.initial(GameSystemSpecs.standard()));
+  }
 }

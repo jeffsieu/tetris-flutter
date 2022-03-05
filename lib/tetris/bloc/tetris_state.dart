@@ -5,11 +5,12 @@ const kBoardHeight = 20;
 
 class TetrisState extends Equatable {
   TetrisState.initial(this.gameSystemSpecs)
-      : map = List.generate(
-            kBoardHeight, (_) => List.filled(kBoardWidth, MinoTile.empty())),
+      : map = List.generate(kBoardHeight,
+            (_) => List.filled(kBoardWidth, const MinoTile.empty())),
         wasMinoHeld = false,
         heldMino = null {
     activeMino = bag.draw().toInitialMino(gameSystemSpecs);
+    nextMinoType = bag.peek();
     hintMino = getHintMino(activeMino, map);
     renderedTiles = getMapWithPiece();
   }
@@ -18,6 +19,7 @@ class TetrisState extends Equatable {
     required this.map,
     required this.gameSystemSpecs,
     required this.activeMino,
+    required this.nextMinoType,
     required this.hintMino,
     required this.heldMino,
     required this.wasMinoHeld,
@@ -29,6 +31,7 @@ class TetrisState extends Equatable {
   final GameSystemSpecs gameSystemSpecs;
   late final List<List<MinoTile>> renderedTiles;
   late final Mino activeMino;
+  late final MinoType nextMinoType;
   late final Mino hintMino;
   final MinoType? heldMino;
   final bool wasMinoHeld;
@@ -67,14 +70,13 @@ class TetrisState extends Equatable {
     for (var position in hintMino.occupiedPositions) {
       final x = position.x;
       final y = position.y;
-      mapCopy[y][x] = MinoTile(StandardMinoColorScheme().getHintColor());
+      mapCopy[y][x] = const MinoTile.hint();
     }
 
     for (var position in activeMino.occupiedPositions) {
       final x = position.x;
       final y = position.y;
-      mapCopy[y][x] =
-          MinoTile(StandardMinoColorScheme().getColor(activeMino.type));
+      mapCopy[y][x] = MinoTile(activeMino.type);
     }
 
     return mapCopy;
@@ -86,7 +88,7 @@ class TetrisState extends Equatable {
     }
 
     List<List<MinoTile>> newMap = List.generate(
-        kBoardHeight, (_) => List.filled(kBoardWidth, MinoTile.empty()));
+        kBoardHeight, (_) => List.filled(kBoardWidth, const MinoTile.empty()));
 
     for (var y = kBoardHeight - 1, oldY = kBoardHeight - 1; oldY >= 0; oldY--) {
       if (isEmptyRow(map[oldY])) {
@@ -104,7 +106,7 @@ class TetrisState extends Equatable {
     }
     final nextMino = (heldMino ?? bag.draw()).toInitialMino(gameSystemSpecs);
     return copyWith(
-      wasMinoHeld: heldMino == null,
+      wasMinoHeld: true,
       heldMino: activeMino.type,
       activeMino: nextMino,
     );
@@ -119,6 +121,7 @@ class TetrisState extends Equatable {
         return copyWith(
           map: removeFullRows(getMapWithPiece()),
           activeMino: bag.draw().toInitialMino(gameSystemSpecs),
+          nextMinoType: bag.peek(),
           wasMinoHeld: false,
         );
       }
@@ -168,6 +171,7 @@ class TetrisState extends Equatable {
     List<List<MinoTile>>? map,
     GameSystemSpecs? gameSystemSpecs,
     Mino? activeMino,
+    MinoType? nextMinoType,
     MinoType? heldMino,
     bool? wasMinoHeld,
   }) {
@@ -175,6 +179,7 @@ class TetrisState extends Equatable {
       map: map ?? this.map,
       gameSystemSpecs: gameSystemSpecs ?? this.gameSystemSpecs,
       activeMino: activeMino ?? this.activeMino,
+      nextMinoType: nextMinoType ?? this.nextMinoType,
       hintMino: activeMino != null
           ? getHintMino(activeMino, map ?? this.map)
           : hintMino,
@@ -188,6 +193,7 @@ class TetrisState extends Equatable {
         map,
         bag,
         activeMino,
+        nextMinoType,
         hintMino,
         heldMino,
         wasMinoHeld,
