@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'mino.dart';
+import 'package:tetris_flutter/models/models.dart';
 
 abstract class MinoBag {
   const MinoBag();

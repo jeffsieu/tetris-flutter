@@ -1,30 +1,24 @@
-import 'package:tetris_flutter/models/bounding_box_delegate.dart';
-import 'package:tetris_flutter/models/kick.dart';
-import 'package:tetris_flutter/models/mino_color_scheme.dart';
-import 'package:tetris_flutter/models/rotation.dart';
-
-import 'models/mino.dart';
-import 'models/mino_bag.dart';
-import 'models/mino_color.dart';
+part of 'tetris_bloc.dart';
 
 const kBoardWidth = 10;
 const kBoardHeight = 20;
 
-class TetrisState {
-  TetrisState.initial()
+class TetrisState extends Equatable {
+  TetrisState.initial(this.gameSystemSpecs)
       : map = List.generate(
             kBoardHeight, (_) => List.filled(kBoardWidth, MinoTile.empty())),
         wasMinoHeld = false,
         heldMino = null {
-    bag = RandomGeneratorBag();
-    activeMino = bag.draw().toInitialMino();
+    activeMino = bag.draw().toInitialMino(gameSystemSpecs);
+    hintMino = getHintMino(activeMino, map);
     renderedTiles = getMapWithPiece();
   }
 
   TetrisState({
     required this.map,
-    required this.bag,
+    required this.gameSystemSpecs,
     required this.activeMino,
+    required this.hintMino,
     required this.heldMino,
     required this.wasMinoHeld,
   }) {
@@ -32,13 +26,21 @@ class TetrisState {
   }
 
   final List<List<MinoTile>> map;
+  final GameSystemSpecs gameSystemSpecs;
   late final List<List<MinoTile>> renderedTiles;
-  late final MinoBag bag;
   late final Mino activeMino;
+  late final Mino hintMino;
   final MinoType? heldMino;
   final bool wasMinoHeld;
 
+  MinoBag get bag => gameSystemSpecs.bag;
+  RotationSystem get rotationSystem => gameSystemSpecs.rotationSystem;
+
   bool fitsMino(Mino mino) {
+    return minoFitsInMap(mino, map);
+  }
+
+  static minoFitsInMap(Mino mino, List<List<MinoTile>> map) {
     return mino.left >= 0 &&
         mino.right < kBoardWidth &&
         mino.top >= 0 &&
@@ -61,12 +63,20 @@ class TetrisState {
   List<List<MinoTile>> getMapWithPiece() {
     final mapCopy =
         List.generate(kBoardHeight, (y) => List<MinoTile>.from(map[y]));
+
+    for (var position in hintMino.occupiedPositions) {
+      final x = position.x;
+      final y = position.y;
+      mapCopy[y][x] = MinoTile(StandardMinoColorScheme().getHintColor());
+    }
+
     for (var position in activeMino.occupiedPositions) {
       final x = position.x;
       final y = position.y;
       mapCopy[y][x] =
           MinoTile(StandardMinoColorScheme().getColor(activeMino.type));
     }
+
     return mapCopy;
   }
 
@@ -92,7 +102,7 @@ class TetrisState {
     if (wasMinoHeld) {
       return this;
     }
-    final nextMino = heldMino?.toInitialMino() ?? bag.draw().toInitialMino();
+    final nextMino = (heldMino ?? bag.draw()).toInitialMino(gameSystemSpecs);
     return copyWith(
       wasMinoHeld: heldMino == null,
       heldMino: activeMino.type,
@@ -108,7 +118,7 @@ class TetrisState {
       } else {
         return copyWith(
           map: removeFullRows(getMapWithPiece()),
-          activeMino: bag.draw().toInitialMino(),
+          activeMino: bag.draw().toInitialMino(gameSystemSpecs),
           wasMinoHeld: false,
         );
       }
@@ -119,15 +129,18 @@ class TetrisState {
     );
   }
 
-  TetrisState withMinoDropped() {
-    var currentMino = activeMino;
-    var shiftedMino = currentMino.shifted(y: 1);
-    while (fitsMino(shiftedMino)) {
-      currentMino = shiftedMino;
-      shiftedMino = currentMino.shifted(y: 1);
+  static Mino getHintMino(Mino mino, List<List<MinoTile>> map) {
+    var shiftedMino = mino.shifted(y: 1);
+    while (minoFitsInMap(shiftedMino, map)) {
+      mino = shiftedMino;
+      shiftedMino = mino.shifted(y: 1);
     }
+    return mino;
+  }
+
+  TetrisState withMinoDropped() {
     return copyWith(
-      activeMino: currentMino,
+      activeMino: hintMino,
       wasMinoHeld: false,
     ).withMinoShifted(y: 1);
   }
@@ -136,7 +149,7 @@ class TetrisState {
     final targetRotation = activeMino.rotation.add(rotation);
     final rotatedMino = activeMino.rotated(rotation);
 
-    for (var offset in RotationSystem().getAlternativeOffsets(
+    for (var offset in rotationSystem.getAlternativeOffsets(
         activeMino.type, activeMino.rotation, targetRotation)) {
       final rotatedAndOffsetMino =
           rotatedMino.shifted(x: offset.x, y: offset.y);
@@ -153,26 +166,39 @@ class TetrisState {
 
   TetrisState copyWith({
     List<List<MinoTile>>? map,
-    MinoBag? bag,
+    GameSystemSpecs? gameSystemSpecs,
     Mino? activeMino,
     MinoType? heldMino,
     bool? wasMinoHeld,
   }) {
     return TetrisState(
       map: map ?? this.map,
-      bag: bag ?? this.bag,
+      gameSystemSpecs: gameSystemSpecs ?? this.gameSystemSpecs,
       activeMino: activeMino ?? this.activeMino,
+      hintMino: activeMino != null
+          ? getHintMino(activeMino, map ?? this.map)
+          : hintMino,
       heldMino: heldMino ?? this.heldMino,
       wasMinoHeld: wasMinoHeld ?? this.wasMinoHeld,
     );
   }
+
+  @override
+  List<Object?> get props => [
+        map,
+        bag,
+        activeMino,
+        hintMino,
+        heldMino,
+        wasMinoHeld,
+      ];
 }
 
 extension on MinoType {
-  Mino toInitialMino() {
+  Mino toInitialMino(GameSystemSpecs movementSystem) {
     return Mino.initial(
       type: this,
-      baseBoundingBox: MinoBoundingBoxDelegateImpl().getBoundingBox(this),
+      baseBoundingBox: movementSystem.boundingBoxProvider.getBoundingBox(this),
       boardWidth: kBoardWidth,
       boardHeight: kBoardHeight,
     );

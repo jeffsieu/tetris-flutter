@@ -1,6 +1,6 @@
 enum Rotation {
   clockwise,
-  counterclockwise,
+  counterClockwise,
   half,
   none,
 }
@@ -10,7 +10,7 @@ extension RotationExtension on Rotation {
     switch (this) {
       case Rotation.clockwise:
         return 1;
-      case Rotation.counterclockwise:
+      case Rotation.counterClockwise:
         return 3;
       case Rotation.half:
         return 2;
@@ -28,7 +28,7 @@ extension RotationExtension on Rotation {
     } else if (turns == 2) {
       return Rotation.half;
     } else if (turns == 3) {
-      return Rotation.counterclockwise;
+      return Rotation.counterClockwise;
     } else {
       throw Exception('Invalid rotation: $turns');
     }

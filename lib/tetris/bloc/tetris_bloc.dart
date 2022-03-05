@@ -1,12 +1,12 @@
 import 'dart:async';
 
+import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tetris_flutter/models/rotation.dart';
-import 'package:tetris_flutter/tetris_state.dart';
+import 'package:tetris_flutter/models/models.dart';
 
-import '../models/direction.dart';
+part 'tetris_state.dart';
 
-const Duration kMinoRestingDuration = Duration(milliseconds: 1000);
+const Duration kMinoRestingDuration = Duration(milliseconds: 500);
 
 class TetrisBloc extends Bloc<TetrisEvent, TetrisState> {
   TetrisBloc(TetrisState initialState) : super(initialState) {
@@ -43,19 +43,23 @@ class TetrisBloc extends Bloc<TetrisEvent, TetrisState> {
 
   void _onPieceShifted(PieceShifted event, Emitter<TetrisState> emit) {
     if (state.isGameOver()) {
-      emit(TetrisState.initial());
+      emit(TetrisState.initial(GameSystemSpecs.standard()));
       return;
     }
     if (event.y == 1 && (settleTimer != null || !state.canActiveMinoFall())) {
-      // Fast drop is active
-      // Begin timer to wait for piece to settle
+      // If the piece can no longer fall, we start the settle timer.
       settleTimer ??= Timer(kMinoRestingDuration, _onSettleTimerTick);
       return;
     }
-    settleTimer?.cancel();
-    settleTimer = null;
 
-    emit(state.withMinoShifted(x: event.x, y: event.y));
+    final newState = state.withMinoShifted(x: event.x, y: event.y);
+
+    if (state != newState) {
+      // Reset the settle timer if the piece has shifted.
+      settleTimer?.cancel();
+      settleTimer = null;
+      emit(newState);
+    }
   }
 
   void _onPieceRotated(PieceRotated event, Emitter<TetrisState> emit) {

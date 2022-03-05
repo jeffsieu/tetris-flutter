@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tetris_flutter/tetris/tetris_bloc.dart';
-import 'package:tetris_flutter/tetris_state.dart';
+import 'package:tetris_flutter/tetris/tetris.dart';
 
 class Board extends StatelessWidget {
   const Board({Key? key}) : super(key: key);
@@ -20,7 +19,7 @@ class Board extends StatelessWidget {
               width: 12,
               decoration: BoxDecoration(
                 color: tiles[y][x].color,
-                border: Border.all(color: Colors.black),
+                border: Border.all(color: Colors.grey),
               ),
             ),
       ],

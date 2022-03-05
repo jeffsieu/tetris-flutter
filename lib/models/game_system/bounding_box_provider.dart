@@ -1,11 +1,16 @@
-import 'package:tetris_flutter/models/bounding_box.dart';
-import 'package:tetris_flutter/models/mino.dart';
+import 'package:tetris_flutter/models/models.dart';
 
-abstract class MinoBoundingBoxDelegate {
+/// Provides bounding box information for a given mino.
+abstract class MinoBoundingBoxProvider {
+  const MinoBoundingBoxProvider();
   MinoBoundingBox getBoundingBox(MinoType type);
 }
 
-class MinoBoundingBoxDelegateImpl extends MinoBoundingBoxDelegate {
+/// A standard implementation of [MinoBoundingBoxProvider].
+/// Usually used with [SuperRotationSystem].
+class StandardMinoBoundingBoxProvider extends MinoBoundingBoxProvider {
+  const StandardMinoBoundingBoxProvider();
+
   @override
   MinoBoundingBox getBoundingBox(MinoType type) {
     switch (type) {

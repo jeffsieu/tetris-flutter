@@ -1,7 +1,6 @@
 import 'dart:math';
 
-import 'package:tetris_flutter/models/bounding_box.dart';
-import 'package:tetris_flutter/models/rotation.dart';
+import 'package:tetris_flutter/models/models.dart';
 
 class Mino {
   Mino.initial({
@@ -10,7 +9,8 @@ class Mino {
     required int boardWidth,
     required int boardHeight,
   }) : this(
-          position: Position(baseBoundingBox.size, 0),
+          // Place it centered on the board
+          position: Position((boardWidth - baseBoundingBox.size) ~/ 2, 0),
           type: type,
           baseBoundingBox: baseBoundingBox,
           rotation: Rotation.none,
@@ -65,25 +65,4 @@ class Mino {
       rotation: this.rotation.add(rotation),
     );
   }
-}
-
-class Position {
-  const Position(this.x, this.y);
-
-  final int x;
-  final int y;
-
-  Position shifted({int x = 0, int y = 0}) {
-    return Position(this.x + x, this.y + y);
-  }
-}
-
-enum MinoType {
-  I,
-  O,
-  T,
-  S,
-  Z,
-  J,
-  L,
 }

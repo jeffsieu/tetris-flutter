@@ -1,5 +1,4 @@
-import 'mino.dart';
-import 'rotation.dart';
+import 'package:tetris_flutter/models/models.dart';
 
 /// Represents information regarding the rotated bounding box of a [Mino].
 class MinoBoundingBox {
@@ -38,7 +37,7 @@ class MinoBoundingBox {
           case Rotation.half:
             rotatedTiles[size - y - 1][size - x - 1] = tile;
             break;
-          case Rotation.counterclockwise:
+          case Rotation.counterClockwise:
             rotatedTiles[size - x - 1][y] = tile;
             break;
         }

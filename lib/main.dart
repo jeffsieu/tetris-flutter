@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tetris_flutter/tetris/tetris_bloc.dart';
-import 'package:tetris_flutter/tetris_state.dart';
+import 'package:tetris_flutter/input/input.dart';
+import 'package:tetris_flutter/models/models.dart';
+import 'package:tetris_flutter/tetris/tetris.dart';
 import 'package:tetris_flutter/widgets/board.dart';
-
-import 'models/direction.dart';
-import 'models/rotation.dart';
 
 void main() {
   runApp(const TetrisApp());
@@ -18,7 +16,7 @@ class TetrisApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Tetris',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -35,6 +33,20 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
+
+final repeatableKeyBindings = {
+  PhysicalKeyboardKey.arrowLeft: PieceShifted(Direction.left),
+  PhysicalKeyboardKey.arrowRight: PieceShifted(Direction.right),
+  PhysicalKeyboardKey.arrowDown: PieceShifted(Direction.down),
+};
+
+final nonRepeatableKeyBindings = {
+  PhysicalKeyboardKey.shiftLeft: const PieceSwapped(),
+  PhysicalKeyboardKey.space: const PieceDropped(),
+  PhysicalKeyboardKey.keyZ: const PieceRotated(Rotation.counterClockwise),
+  PhysicalKeyboardKey.keyX: const PieceRotated(Rotation.clockwise),
+  PhysicalKeyboardKey.keyA: const PieceRotated(Rotation.half),
+};
 
 class _MyHomePageState extends State<MyHomePage> {
   late FocusNode focusNode;
@@ -58,36 +70,52 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: BlocProvider(
-        create: (context) => TetrisBloc(TetrisState.initial()),
+      body: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) =>
+                TetrisBloc(TetrisState.initial(GameSystemSpecs.standard())),
+          ),
+          BlocProvider(
+            create: (context) => InputBloc(
+              keyBindings: {
+                ...repeatableKeyBindings.map(
+                  (key, value) => MapEntry(
+                    key,
+                    InputAction(
+                        callback: () {
+                          context.read<TetrisBloc>().add(value);
+                        },
+                        isRepeatable: true),
+                  ),
+                ),
+                ...nonRepeatableKeyBindings.map(
+                  (key, value) => MapEntry(
+                    key,
+                    InputAction(
+                        callback: () {
+                          context.read<TetrisBloc>().add(value);
+                        },
+                        isRepeatable: false),
+                  ),
+                ),
+              },
+            ),
+          ),
+        ],
         child: Builder(builder: (context) {
-          return FocusableActionDetector(
+          return RawKeyboardListener(
             focusNode: focusNode,
-            shortcuts: {
-              const SingleActivator(LogicalKeyboardKey.arrowLeft):
-                  _TetrisIntent(PieceShifted(Direction.left)),
-              const SingleActivator(LogicalKeyboardKey.arrowRight):
-                  _TetrisIntent(PieceShifted(Direction.right)),
-              const SingleActivator(LogicalKeyboardKey.arrowDown):
-                  _TetrisIntent(PieceShifted(Direction.down)),
-              const SingleActivator(LogicalKeyboardKey.space):
-                  const _TetrisIntent(PieceDropped()),
-              const SingleActivator(LogicalKeyboardKey.keyZ):
-                  const _TetrisIntent(PieceRotated(Rotation.counterclockwise)),
-              const SingleActivator(LogicalKeyboardKey.keyX):
-                  const _TetrisIntent(PieceRotated(Rotation.clockwise)),
-              const SingleActivator(LogicalKeyboardKey.keyA):
-                  const _TetrisIntent(PieceRotated(Rotation.half)),
-              const SingleActivator(LogicalKeyboardKey.keyC):
-                  const _TetrisIntent(PieceSwapped()),
-            },
-            actions: {
-              _TetrisIntent: CallbackAction<_TetrisIntent>(
-                onInvoke: (intent) {
-                  context.read<TetrisBloc>().add(intent.event);
-                  return null;
-                },
-              )
+            onKey: (event) {
+              if (event is RawKeyDownEvent) {
+                context
+                    .read<InputBloc>()
+                    .add(InputKeyDownEvent(event.physicalKey));
+              } else if (event is RawKeyUpEvent) {
+                context
+                    .read<InputBloc>()
+                    .add(InputKeyUpEvent(event.physicalKey));
+              }
             },
             child: Stack(
               children: [
@@ -126,10 +154,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-}
-
-class _TetrisIntent extends Intent {
-  const _TetrisIntent(this.event);
-
-  final TetrisEvent event;
 }
