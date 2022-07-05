@@ -10,8 +10,14 @@ class MinoBoard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.watch<MinoColorScheme>();
     final tiles = context.select((TetrisBloc bloc) => bloc.state.renderedTiles);
-    return SizedBox(
+    return Container(
       width: kTileSize * kBoardWidth,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+          width: 1,
+        ),
+      ),
       child: GridView.count(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
